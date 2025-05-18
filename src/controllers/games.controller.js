@@ -1,7 +1,7 @@
 import Games from "../models/games.model.js";
 import path from "path";
-import fs from "fs/promises";
 import { OkResponse, badResponse } from "../utils/responses.js";
+import { deleteImgPath } from "../utils/delete_img_path.js";
 
 export const getGames = async (req, res) => {
   try {
@@ -52,16 +52,25 @@ export const getGameById = async (req, res) => {
       );
     }
 
-    const newImgLogo = buildURL(req, game.img_logo);
-    game.img_logo = newImgLogo;
+    let jsonResponse = game.toJSON();
+    jsonResponse.urlImgLogo = buildURL(req, jsonResponse.img_logo);
 
-    res.json({ message: "Datos obtenidos con exito", game });
+    return OkResponse(
+      res,
+      "Datos obtenidos con exito",
+      `El juego ${jsonResponse.title} se obtuvo con exito `,
+      200,
+      jsonResponse
+    );
   } catch (error) {
     console.error("Error en getGameById", error);
-    res.status(500).json({
-      message: `Error al obtener el juego`,
-      error: error.message,
-    });
+    return badResponse(
+      res,
+      "Error al obtener el juego",
+      "Ocurrio una excepcion al obtener el juego",
+      500,
+      error.message
+    );
   }
 };
 
@@ -74,7 +83,7 @@ export const insertGame = async (req, res) => {
       return badResponse(
         res,
         "Error al guardar imagen",
-        "No se guardo la imagen en uploads",
+        "No se guardó la imagen en uploads",
         500,
         null
       );
@@ -101,18 +110,31 @@ export const insertGame = async (req, res) => {
 
     return OkResponse(
       res,
-      "Juego creado con exito",
-      `El juego ${newGame.title} fue ingresado con exito`,
+      "Juego creado con éxito",
+      `El juego ${newGame.title} fue ingresado con éxito`,
       201,
       jsonResponse
     );
   } catch (error) {
     console.log(`Error en insertGame (controlador): ${error}`);
-    await deleteImg(req);
+
+    const fileImgLogo = req.files?.img_logo?.[0];
+
+    if (fileImgLogo) {
+      const resDeleteImg = await deleteImgPath(fileImgLogo);
+      if (resDeleteImg.value === false) {
+        console.log(
+          "No se pudo borrar la imagen tras la excepción en insertGame"
+        );
+      } else {
+        console.log("Imagen borrada exitosamente");
+      }
+    }
+
     return badResponse(
       res,
       "Error al insertar el juego",
-      "Ocurrio una excepcion en el controlador (insertGame)",
+      "Ocurrió una excepción en el controlador (insertGame)",
       500,
       error.message
     );
@@ -120,14 +142,16 @@ export const insertGame = async (req, res) => {
 };
 
 export const updateGame = async (req, res) => {
+  let oldGame = null;
+
   try {
     const { id } = req.params;
-    const oldGame = await Games.getGameById(id);
+    oldGame = await Games.getGameById(id);
 
     if (!oldGame) {
       return badResponse(
         res,
-        "No se encontro el juego",
+        "No se encontró el juego",
         `No se encontró el juego con la ID: ${id}`,
         404,
         null
@@ -141,9 +165,21 @@ export const updateGame = async (req, res) => {
       return badResponse(
         res,
         "Error al guardar imagen",
-        "No se guardo la imagen en uploads",
+        "No se guardó la imagen en uploads",
         500,
         null
+      );
+    }
+
+    const resDeleteImg = await deleteImgPath(oldGame.img_logo);
+
+    if (resDeleteImg !== null) {
+      return badResponse(
+        res,
+        "Error al borrar imagen",
+        "Ocurrió un error al borrar la imagen anterior",
+        500,
+        resDeleteImg.message
       );
     }
 
@@ -163,24 +199,42 @@ export const updateGame = async (req, res) => {
       short_title,
     };
 
-    await deleteImgPath(oldGame.img_logo);
-
     const updatedGame = await Games.updateGame(id, newGame);
 
-    return res.status(201).json({
-      message: `El juego ${updatedGame.title} fue actualizado con éxito`,
-      data: {
-        ...newGame,
-        img_logo: buildURL(req, img_logo),
-      },
-    });
+    let jsonResponse = updatedGame.toJSON();
+    jsonResponse.urlImgLogo = buildURL(req, img_logo);
+
+    return OkResponse(
+      res,
+      "Juego actualizado con éxito",
+      `El juego ${jsonResponse.title} fue actualizado con éxito`,
+      200,
+      jsonResponse
+    );
   } catch (error) {
     console.error(`Error en updateGame (controlador): ${error.message}`);
-    await deleteImg(req);
-    res.status(500).json({
-      message: `Error al actualizar el juego`,
-      error: error.message,
-    });
+
+    if (oldGame?.img_logo) {
+      const resDeleteImg = await deleteImgPath(oldGame.img_logo);
+
+      if (resDeleteImg !== null) {
+        return badResponse(
+          res,
+          "Error al borrar imagen",
+          "Ocurrió un error al borrar la imagen",
+          500,
+          resDeleteImg.message
+        );
+      }
+    }
+
+    return badResponse(
+      res,
+      "Error al actualizar el juego",
+      "Ocurrió una excepción al actualizar",
+      500,
+      error.message
+    );
   }
 };
 
@@ -198,17 +252,33 @@ export const deleteGame = async (req, res) => {
     const oldGameName = oldGame.title;
     const deletedGame = await Games.deleteGame(id);
 
-    await deleteImgPath(oldGame.img_logo);
+    const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-    return res.status(201).json({
-      message: `El juego ${oldGameName} con la id: ${id} fue eliminado con exito`,
-      data: deletedGame,
-    });
+    if (resDeleteImg !== null) {
+      return badResponse(
+        res,
+        "Error al borrar imagen",
+        "Ocurrio un error al borrar la imagen",
+        500,
+        resDeleteImg.message
+      );
+    }
+
+    return OkResponse(
+      res,
+      `Juego borrado con exito`,
+      `El juego ${oldGameName} con la id: ${id} fue eliminado con exito`,
+      200,
+      id
+    );
   } catch (error) {
-    res.status(500).json({
-      message: `No pudo eliminarse el juego`,
-      error: error.message,
-    });
+    return badResponse(
+      res,
+      "Error al borrar el juego",
+      "Ocurrio un error al eliminar el juego",
+      500,
+      error.message
+    );
   }
 };
 
@@ -216,29 +286,4 @@ function buildURL(req, filePath) {
   const baseUrl = `${req.protocol}://${req.get("host")}`;
   const webPath = filePath.replace(/\\/g, "/");
   return `${baseUrl}/${webPath}`;
-}
-
-async function deleteImg(req) {
-  try {
-    if (req.file) {
-      const fullPath = path.join(process.cwd(), req.file.path);
-      await fs.unlink(fullPath);
-    }
-  } catch (error) {
-    console.log(`No se pudo borrar la imagen: ${error.message}`);
-  }
-}
-
-async function deleteImgPath(imgPath) {
-  try {
-    if (!imgPath) return;
-
-    const fullPath = path.join(process.cwd(), imgPath);
-    await fs.access(fullPath);
-    await fs.unlink(fullPath);
-
-    console.log("Imagen eliminada correctamente");
-  } catch (err) {
-    console.log(`No se pudo borrar la imagen anterior: ${err.message}`);
-  }
 }
