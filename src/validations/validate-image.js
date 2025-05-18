@@ -10,7 +10,6 @@ export const validateImages = (fieldNames = [], options = {}) => {
     for (const name of fieldNames) {
       const files = req.files?.[name];
 
-      // Verifica que el archivo exista
       if (!files || files.length === 0) {
         errors.push({
           msg: `La imagen '${name}' es obligatoria`,
