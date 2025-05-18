@@ -20,12 +20,7 @@ router.get("/games/:id", getGameById);
 router.post(
   "/games",
   upload.fields([{ name: "img_logo", maxCount: 1 }]),
-  validateImages({
-    fields: [{ name: "img_logo", maxCount: 1 }],
-    requiredFields: ["img_logo"],
-    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
-    maxFileSizeMB: 5,
-  }),
+  validateImages(["img_logo"]),
   validateGame,
   validateFields,
   insertGame
@@ -33,12 +28,7 @@ router.post(
 router.put(
   "/games/:id",
   upload.fields([{ name: "img_logo", maxCount: 1 }]),
-  validateImages({
-    fields: [{ name: "img_logo", maxCount: 1 }],
-    requiredFields: ["img_logo"],
-    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
-    maxFileSizeMB: 5,
-  }),
+  validateImages(["img_logo"]),
   validateGame,
   validateFields,
   updateGame
