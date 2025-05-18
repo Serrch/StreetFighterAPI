@@ -34,19 +34,6 @@ export const insertFighter = async (req, res) => {
     const { name, history, description, fighting_style, nationality } =
       req.body;
 
-    if (!name || !history || !description || !fighting_style || !nationality) {
-      return res.status(400).json({
-        message: `Se necesita de todos los campos para agregar un nuevo peleador`,
-        campos_recibidos: {
-          name,
-          history,
-          description,
-          fighting_style,
-          nationality,
-        },
-      });
-    }
-
     const nuevoFighter = await Fighters.insertFighter({
       name,
       history,
@@ -80,19 +67,6 @@ export const updateFighter = async (req, res) => {
 
     const { name, history, description, fighting_style, nationality } =
       req.body;
-
-    if (!name || !history || !description || !fighting_style || !nationality) {
-      return res.status(400).json({
-        message: `Se necesita de todos los campos para actualizar al peleador ${oldFighter.fighter.name}`,
-        campos_recibidos: {
-          name,
-          history,
-          description,
-          fighting_style,
-          nationality,
-        },
-      });
-    }
 
     const newFighter = {
       name,
