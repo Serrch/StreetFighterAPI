@@ -4,16 +4,28 @@ import FighterVersion from "./fighters_versions.model.js";
 import FighterMove from "./fighter_moves.model.js";
 import FighterImage from "./fighter_images.model.js";
 
+Fighters.hasMany(FighterVersion, {
+  foreignKey: "id_fighter",
+  as: "versions",
+  onDelete: "CASCADE",
+  onUpdate: "CASCADE",
+  constraints: true,
+});
+
 FighterVersion.belongsTo(Fighters, {
   foreignKey: "id_fighter",
   as: "fighter",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
+  constraints: true,
 });
 
-Fighters.hasMany(FighterVersion, {
-  foreignKey: "id_fighter",
-  as: "versions",
+Games.hasMany(FighterVersion, {
+  foreignKey: "id_game",
+  as: "fighter_versions",
+  onDelete: "CASCADE",
+  onUpdate: "CASCADE",
+  constraints: true,
 });
 
 FighterVersion.belongsTo(Games, {
@@ -21,11 +33,7 @@ FighterVersion.belongsTo(Games, {
   as: "game",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
-});
-
-Games.hasMany(FighterVersion, {
-  foreignKey: "id_game",
-  as: "fighter_versions",
+  constraints: true,
 });
 
 FighterVersion.hasMany(FighterImage, {
@@ -33,6 +41,7 @@ FighterVersion.hasMany(FighterImage, {
   as: "images",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
+  constraints: true,
 });
 
 FighterImage.belongsTo(FighterVersion, {
@@ -40,6 +49,7 @@ FighterImage.belongsTo(FighterVersion, {
   as: "version",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
+  constraints: true,
 });
 
 FighterVersion.hasMany(FighterMove, {
@@ -47,6 +57,7 @@ FighterVersion.hasMany(FighterMove, {
   as: "moves",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
+  constraints: true,
 });
 
 FighterMove.belongsTo(FighterVersion, {
@@ -54,4 +65,5 @@ FighterMove.belongsTo(FighterVersion, {
   as: "version",
   onDelete: "CASCADE",
   onUpdate: "CASCADE",
+  constraints: true,
 });
