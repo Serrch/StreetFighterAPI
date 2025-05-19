@@ -27,13 +27,15 @@ function definirFolder(req) {
 
   if (endpointPath.startsWith("/api/games")) {
     folder = path.join(BASE_UPLOAD_PATH, "uploads", "img_game_logos");
-  } else if (endpointPath.startsWith("/api/fighter_version")) {
-    const idGame = req.body.idGame || "default";
+  } else if (endpointPath.startsWith("/api/fighter_image")) {
+    const type = req.body.image_type;
+    const idFighterVersion = req.body.id_fighter_version;
     folder = path.join(
       BASE_UPLOAD_PATH,
       "uploads",
       "img_fighters",
-      `SF${idGame}`
+      `${idFighterVersion}`,
+      `${type}`
     );
   } else if (endpointPath.startsWith("/api/fighter_moves")) {
     folder = path.join(
@@ -56,7 +58,9 @@ function definirNombre(req) {
   if (endpointPath.startsWith("/api/games")) {
     name = `${req.body.short_title}`;
   } else if (endpointPath.startsWith("/api/fighter_versions")) {
-    name = `${req.body.version_name}`;
+    const idFighterVersion = req.body.id_fighter_version;
+    const type = req.body.image_type;
+    name = `FighterVersion_${idFighterVersion}_${type}`;
   } else if (endpointPath.startsWith("/api/fighter_moves")) {
     name = `${req.body.name}`;
   } else {

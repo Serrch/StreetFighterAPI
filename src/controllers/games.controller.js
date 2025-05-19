@@ -2,6 +2,7 @@ import Games from "../models/games.model.js";
 import path from "path";
 import { OkResponse, badResponse } from "../utils/responses.js";
 import { deleteImgPath } from "../utils/delete_img_path.js";
+import { buildURL } from "../utils/buildURL.js";
 
 export const getGames = async (req, res) => {
   try {
@@ -173,7 +174,7 @@ export const updateGame = async (req, res) => {
 
     const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-    if (resDeleteImg !== null) {
+    if (resDeleteImg?.value === false) {
       return badResponse(
         res,
         "Error al borrar imagen",
@@ -217,7 +218,7 @@ export const updateGame = async (req, res) => {
     if (oldGame?.img_logo) {
       const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-      if (resDeleteImg !== null) {
+      if (resDeleteImg?.value === false) {
         return badResponse(
           res,
           "Error al borrar imagen",
@@ -244,9 +245,13 @@ export const deleteGame = async (req, res) => {
     const oldGame = await Games.getGameById(id);
 
     if (!oldGame) {
-      return res
-        .status(404)
-        .json({ message: `No se encontro el juego con la ID: ${id}` });
+      return badResponse(
+        res,
+        "Juego no encontrado",
+        `No se encontró el juego con la ID: ${id}`,
+        404,
+        id
+      );
     }
 
     const oldGameName = oldGame.title;
@@ -254,7 +259,7 @@ export const deleteGame = async (req, res) => {
 
     const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-    if (resDeleteImg !== null) {
+    if (resDeleteImg?.value === false) {
       return badResponse(
         res,
         "Error al borrar imagen",
@@ -281,9 +286,3 @@ export const deleteGame = async (req, res) => {
     );
   }
 };
-
-function buildURL(req, filePath) {
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const webPath = filePath.replace(/\\/g, "/");
-  return `${baseUrl}/${webPath}`;
-}

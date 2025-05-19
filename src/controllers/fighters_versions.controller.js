@@ -69,13 +69,7 @@ export const getFighterVersionById = async (req, res) => {
 
 export const insertFighterVersion = async (req, res) => {
   try {
-    const {
-      id_fighter_version,
-      id_fighter,
-      id_game,
-      version_name,
-      description,
-    } = req.body;
+    const { id_fighter, id_game, version_name, description } = req.body;
 
     const existIdFighter = await existId("fighters", id_fighter);
     const existIdGame = await existId("games", id_game);
@@ -98,7 +92,6 @@ export const insertFighterVersion = async (req, res) => {
       );
 
     const newFighterVersion = await FighterVersion.insertFighterVersion({
-      id_fighter_version,
       id_fighter,
       id_game,
       version_name,
@@ -113,7 +106,7 @@ export const insertFighterVersion = async (req, res) => {
       newFighterVersion
     );
   } catch (error) {
-    console.error(`Error en insertFighter (controlador): ${error}`);
+    console.error(`Error en insertFighterVersion (controlador): ${error}`);
     res
       .status(500)
       .json({ message: `Error al insertar al peleador`, error: error.message });

@@ -37,7 +37,11 @@ export const validateImages = (fieldNames = [], options = {}) => {
     }
 
     if (errors.length > 0) {
-      return res.status(400).json({ errores: errors });
+      return res.status(400).json({
+        status: "error",
+        title: "Error de validación de imagen",
+        errores: errors,
+      });
     }
 
     next();
