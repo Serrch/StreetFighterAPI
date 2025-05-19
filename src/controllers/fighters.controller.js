@@ -1,13 +1,26 @@
 import Fighters from "../models/fighters.model.js";
+import FighterVersion from "../models/fighters_versions.model.js";
+import FighterImage from "../models/fighter_images.model.js";
+import { OkResponse, badResponse } from "../utils/responses.js";
 
 export const getFighters = async function (req, res) {
   try {
     const fighters = await Fighters.getFighters();
-    res.json(fighters);
+    return OkResponse(
+      res,
+      "Consulta exitosa",
+      "Peleadores obtenidos",
+      200,
+      fighters
+    );
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    return badResponse(
+      res,
+      "Error en getFighters",
+      "No se pudieron obtener los peleadores",
+      500,
+      error.message
+    );
   }
 };
 
@@ -17,15 +30,30 @@ export const getFighterById = async (req, res) => {
     const fighter = await Fighters.getFighterById(id);
 
     if (!fighter) {
-      return res.status(404).json({ message: "Peleador no encontrado" });
+      return badResponse(
+        res,
+        "No encontrado",
+        "Peleador no encontrado",
+        404,
+        null
+      );
     }
 
-    res.json({ message: "Datos obtenidos con exito", fighter });
+    return OkResponse(
+      res,
+      "Consulta exitosa",
+      "Datos obtenidos con éxito",
+      200,
+      fighter
+    );
   } catch (error) {
-    console.error("Error en getFightersById", error);
-    res
-      .status(500)
-      .json({ message: `Error al obtener el peleador`, error: error.message });
+    return badResponse(
+      res,
+      "Error en getFighterById",
+      "Error al obtener el peleador",
+      500,
+      error.message
+    );
   }
 };
 
@@ -42,15 +70,21 @@ export const insertFighter = async (req, res) => {
       nationality,
     });
 
-    return res.status(201).json({
-      message: "El peleador fue ingresado con exito",
-      data: nuevoFighter,
-    });
+    return OkResponse(
+      res,
+      "Inserción exitosa",
+      "El peleador fue ingresado con éxito",
+      201,
+      nuevoFighter
+    );
   } catch (error) {
-    console.error(`Error en insertFighter (controlador): ${error}`);
-    res
-      .status(500)
-      .json({ message: `Error al insertar al peleador`, error: error.message });
+    return badResponse(
+      res,
+      "Error en insertFighter",
+      "Error al insertar al peleador",
+      500,
+      error.message
+    );
   }
 };
 
@@ -60,34 +94,41 @@ export const updateFighter = async (req, res) => {
     const oldFighter = await Fighters.getFighterById(id);
 
     if (!oldFighter) {
-      return res
-        .status(404)
-        .json({ message: `No se encontro al peleador con la ID: ${id}` });
+      return badResponse(
+        res,
+        "No encontrado",
+        `No se encontró al peleador con la ID: ${id}`,
+        404,
+        null
+      );
     }
 
     const { name, history, description, fighting_style, nationality } =
       req.body;
 
-    const newFighter = {
+    const updatedFighter = await Fighters.updateFighter(id, {
       name,
       history,
       description,
       fighting_style,
       nationality,
-    };
-
-    const updatedFighter = await Fighters.updateFighter(id, newFighter);
-
-    return res.status(201).json({
-      message: `El peleador ${updatedFighter.name} fue actualizado con exito`,
-      data: newFighter,
     });
+
+    return OkResponse(
+      res,
+      "Actualización exitosa",
+      `El peleador ${updatedFighter.name} fue actualizado con éxito`,
+      200,
+      updatedFighter
+    );
   } catch (error) {
-    console.error(`Error en updateFighter (controlador): ${error}`);
-    res.status(500).json({
-      message: `Error al intentar actualizar al peleador`,
-      error: error.message,
-    });
+    return badResponse(
+      res,
+      "Error en updateFighter",
+      "Error al intentar actualizar al peleador",
+      500,
+      error.message
+    );
   }
 };
 
@@ -97,24 +138,79 @@ export const deleteFighter = async (req, res) => {
     const oldFighter = await Fighters.getFighterById(id);
 
     if (!oldFighter) {
-      return res
-        .status(404)
-        .json({ message: `No se encontro al peleador con la ID: ${id}` });
+      return badResponse(
+        res,
+        "No encontrado",
+        `No se encontró al peleador con la ID: ${id}`,
+        404,
+        null
+      );
     }
 
     const oldFighterName = oldFighter.name;
-
     const deletedFighter = await Fighters.deleteFighter(id);
 
-    return res.status(201).json({
-      message: `El peleador ${oldFighterName} con la id: ${id} fue eliminado con exito`,
-      data: deletedFighter,
-    });
+    return OkResponse(
+      res,
+      "Eliminación exitosa",
+      `El peleador ${oldFighterName} con la id: ${id} fue eliminado con éxito`,
+      200,
+      deletedFighter
+    );
   } catch (error) {
-    console.error(`Error en deleteFighter (controlador): ${error}`);
-    res.status(500).json({
-      message: `Error al intentar eliminar al peleador`,
-      error: error.message,
+    return badResponse(
+      res,
+      "Error en deleteFighter",
+      "Error al intentar eliminar al peleador",
+      500,
+      error.message
+    );
+  }
+};
+
+export const getFighterDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const fighter = await Fighters.findByPk(id, {
+      include: [
+        {
+          model: FighterVersion,
+          as: "versions",
+          include: [
+            {
+              model: FighterImage,
+              as: "images",
+            },
+          ],
+        },
+      ],
     });
+
+    if (!fighter) {
+      return badResponse(
+        res,
+        "No encontrado",
+        "Peleador no encontrado",
+        404,
+        null
+      );
+    }
+
+    return OkResponse(
+      res,
+      "Consulta exitosa",
+      "Detalles del peleador obtenidos",
+      200,
+      fighter
+    );
+  } catch (error) {
+    return badResponse(
+      res,
+      "Error en getFighterDetails",
+      "Error al obtener el peleador",
+      500,
+      error.message
+    );
   }
 };

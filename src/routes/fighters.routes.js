@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   deleteFighter,
   getFighterById,
+  getFighterDetails,
   getFighters,
   insertFighter,
   updateFighter,
@@ -12,7 +13,7 @@ import { validateFields } from "../validations/validate-fields.js";
 const router = Router();
 
 router.get("/fighters", getFighters);
-router.get("/fighters/:id", getFighterById);
+router.get("/fighters/:id", getFighterDetails);
 router.post("/fighters", validateFighter, validateFields, insertFighter);
 router.put("/fighters/:id", validateFighter, validateFields, updateFighter);
 router.delete("/fighters/:id", deleteFighter);

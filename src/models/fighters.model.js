@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db.js";
+import FighterVersion from "./fighters_versions.model.js";
 
 const Fighters = sequelize.define(
   "Fighters",
@@ -76,6 +77,23 @@ Fighters.deleteFighter = async function (id) {
 
   await fighter.destroy();
   return { id };
+};
+
+Fighters.getFighterWithVersionsAndImages = async function (id) {
+  return await this.findByPk(id, {
+    include: [
+      {
+        model: FighterVersion,
+        as: "versions",
+        include: [
+          {
+            model: FighterImage,
+            as: "images",
+          },
+        ],
+      },
+    ],
+  });
 };
 
 export default Fighters;

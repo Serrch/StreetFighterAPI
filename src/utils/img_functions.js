@@ -1,10 +1,7 @@
 import multer from "multer";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import path from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { BASE_UPLOAD_PATH } from "./const-globales.js";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -29,26 +26,26 @@ function definirFolder(req) {
   let folder;
 
   if (endpointPath.startsWith("/api/games")) {
-    folder = path.resolve(__dirname, "..", "uploads", "img_game_logos");
-  } else if (endpointPath.startsWith("/api/fighter_version")) {
-    const idGame = req.body.idGame || "default";
-    folder = path.resolve(
-      __dirname,
-      "..",
+    folder = path.join(BASE_UPLOAD_PATH, "uploads", "img_game_logos");
+  } else if (endpointPath.startsWith("/api/fighter_image")) {
+    const type = req.body.image_type;
+    const idFighterVersion = req.body.id_fighter_version;
+    folder = path.join(
+      BASE_UPLOAD_PATH,
       "uploads",
       "img_fighters",
-      `SF${idGame}`
+      `${idFighterVersion}`,
+      `${type}`
     );
   } else if (endpointPath.startsWith("/api/fighter_moves")) {
-    folder = path.resolve(
-      __dirname,
-      "..",
+    folder = path.join(
+      BASE_UPLOAD_PATH,
       "uploads",
       "img_fighters_moves",
       "fighter"
     );
   } else {
-    folder = path.resolve(__dirname, "..", "uploads", "defaults");
+    folder = path.join(BASE_UPLOAD_PATH, "uploads", "defaults");
   }
 
   return folder;
@@ -61,7 +58,9 @@ function definirNombre(req) {
   if (endpointPath.startsWith("/api/games")) {
     name = `${req.body.short_title}`;
   } else if (endpointPath.startsWith("/api/fighter_versions")) {
-    name = `${req.body.version_name}`;
+    const idFighterVersion = req.body.id_fighter_version;
+    const type = req.body.image_type;
+    name = `FighterVersion_${idFighterVersion}_${type}`;
   } else if (endpointPath.startsWith("/api/fighter_moves")) {
     name = `${req.body.name}`;
   } else {
