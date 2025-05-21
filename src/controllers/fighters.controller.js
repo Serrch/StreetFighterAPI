@@ -1,7 +1,11 @@
 import Fighters from "../models/fighters.model.js";
 import FighterVersion from "../models/fighters_versions.model.js";
 import FighterImage from "../models/fighter_images.model.js";
-import { OkResponse, badResponse } from "../utils/responses.js";
+import {
+  OkResponse,
+  exceptionResponseControl,
+  notFoundByIdResponse,
+} from "../utils/responses.js";
 import FighterMove from "../models/fighter_moves.model.js";
 import { buildURL } from "../utils/buildURL.js";
 
@@ -16,13 +20,8 @@ export const getFighters = async function (req, res) {
       fighters
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en getFighters",
-      "No se pudieron obtener los peleadores",
-      500,
-      error.message
-    );
+    console.log(`Ocurrio un error en getFighters (controlador): ${error}`);
+    return exceptionResponseControl(res, "getFighters", error.message);
   }
 };
 
@@ -31,15 +30,7 @@ export const getFighterById = async (req, res) => {
     const { id } = req.params;
     const fighter = await Fighters.getFighterById(id);
 
-    if (!fighter) {
-      return badResponse(
-        res,
-        "No encontrado",
-        "Peleador no encontrado",
-        404,
-        null
-      );
-    }
+    if (!fighter) return notFoundByIdResponse(res, "getFighterById", id);
 
     return OkResponse(
       res,
@@ -49,13 +40,8 @@ export const getFighterById = async (req, res) => {
       fighter
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en getFighterById",
-      "Error al obtener el peleador",
-      500,
-      error.message
-    );
+    console.error("Error en getFighterById", error);
+    return exceptionResponseControl(res, "getFighterById", error.message);
   }
 };
 
@@ -80,13 +66,8 @@ export const insertFighter = async (req, res) => {
       nuevoFighter
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en insertFighter",
-      "Error al insertar al peleador",
-      500,
-      error.message
-    );
+    console.log(`Error en insertFighter (controlador): ${error}`);
+    return exceptionResponseControl(res, "insertFighter", error.message);
   }
 };
 
@@ -95,15 +76,7 @@ export const updateFighter = async (req, res) => {
     const { id } = req.params;
     const oldFighter = await Fighters.getFighterById(id);
 
-    if (!oldFighter) {
-      return badResponse(
-        res,
-        "No encontrado",
-        `No se encontró al peleador con la ID: ${id}`,
-        404,
-        null
-      );
-    }
+    if (!oldFighter) return notFoundByIdResponse(res, "updateFighter", id);
 
     const { name, history, description, fighting_style, nationality } =
       req.body;
@@ -124,13 +97,8 @@ export const updateFighter = async (req, res) => {
       updatedFighter
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en updateFighter",
-      "Error al intentar actualizar al peleador",
-      500,
-      error.message
-    );
+    console.error(`Error en updateFighter (controlador): ${error.message}`);
+    return exceptionResponseControl(res, "updateFighter", error.message);
   }
 };
 
@@ -139,15 +107,7 @@ export const deleteFighter = async (req, res) => {
     const { id } = req.params;
     const oldFighter = await Fighters.getFighterById(id);
 
-    if (!oldFighter) {
-      return badResponse(
-        res,
-        "No encontrado",
-        `No se encontró al peleador con la ID: ${id}`,
-        404,
-        null
-      );
-    }
+    if (!oldFighter) return notFoundByIdResponse(res, "deleteFighter", id);
 
     const oldFighterName = oldFighter.name;
     const deletedFighter = await Fighters.deleteFighter(id);
@@ -160,13 +120,8 @@ export const deleteFighter = async (req, res) => {
       deletedFighter
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en deleteFighter",
-      "Error al intentar eliminar al peleador",
-      500,
-      error.message
-    );
+    console.error(`Error en deleteFighter (controlador): ${error.message}`);
+    return exceptionResponseControl(res, "deleteFighter", error.message);
   }
 };
 
@@ -190,16 +145,7 @@ export const getFighterDetails = async (req, res) => {
       ],
     });
 
-    if (!fighter) {
-      return badResponse(
-        res,
-        "No encontrado",
-        "Peleador no encontrado",
-        404,
-        null
-      );
-    }
-
+    if (!fighter) return notFoundByIdResponse(res, "getFighterDetails", id);
     let jsonFighter = fighter.toJSON();
 
     jsonFighter.versions.forEach((version) => {
@@ -223,12 +169,7 @@ export const getFighterDetails = async (req, res) => {
       jsonFighter
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error en getFighterDetails",
-      "Error al obtener el peleador",
-      500,
-      error.message
-    );
+    console.error(`Error en getFighterDetails (controlador): ${error.message}`);
+    return exceptionResponseControl(res, "getFighterDetails", error.message);
   }
 };

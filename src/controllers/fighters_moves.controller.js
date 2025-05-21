@@ -1,5 +1,12 @@
 import FighterMove from "../models/fighter_moves.model.js";
-import { OkResponse, badResponse } from "../utils/responses.js";
+import {
+  OkResponse,
+  badResponse,
+  emptyImages,
+  exceptionResponseControl,
+  notFoundByIdResponse,
+  deleteOldImageErrorResponse,
+} from "../utils/responses.js";
 import { existId } from "../utils/exists_ids.js";
 import { saveImgBuffer } from "../utils/save_img_buffer.js";
 import { buildURL } from "../utils/buildURL.js";
@@ -9,22 +16,12 @@ export const getFighterMoves = async function (req, res) {
   try {
     const fighterMoves = await FighterMove.getFighterMoves();
 
-    if (!fighterMoves) {
-      return badResponse(
-        res,
-        "No se obtuvieron los movimientos",
-        "Ocurrio un error al obtener los movimientos",
-        404,
-        fighterMoves || null
-      );
-    }
-
     const movesWithUrl = fighterMoves.map((move) => {
       return {
         id_fighter_version: move.id_fighter_version,
         name: move.name,
         description: move.description,
-        img_command: move.id_fighter_move,
+        img_command: move.img_command,
         img_execution: move.img_execution,
         is_super_move: move.is_super_move,
         img_comand_url: buildURL(req, move.img_command),
@@ -40,13 +37,7 @@ export const getFighterMoves = async function (req, res) {
       movesWithUrl
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Ocurrio una excepcion al obtener los movimientos",
-      "Excepcion del lado del controlador",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "getFighterMoves", error.message);
   }
 };
 
@@ -55,15 +46,8 @@ export const getFighterMoveById = async (req, res) => {
     const { id } = req.params;
     const fighterMove = await FighterMove.getFighterMoveById(id);
 
-    if (!fighterMove) {
-      return badResponse(
-        res,
-        "Movimiento no encontrado",
-        `No hay un movimiento para la id ${id}`,
-        404,
-        null
-      );
-    }
+    if (!fighterMove)
+      return notFoundByIdResponse(res, "getFighterMoveById", id);
 
     return OkResponse(
       res,
@@ -73,13 +57,7 @@ export const getFighterMoveById = async (req, res) => {
       fighterMove
     );
   } catch (error) {
-    return badResponse(
-      res,
-      `Ocurrio una excepcion al obtener el movimiento`,
-      "Excepcion del lado del controlador",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "getFighterMoveById", error.message);
   }
 };
 
@@ -94,25 +72,15 @@ export const insertFighterMove = async (req, res) => {
       id_fighter_version
     );
 
-    if (!existIdFighterVersion) {
-      return badResponse(
-        res,
-        "No se encontro la id_fighter_version",
-        `La id ${id_fighter_version} no corresponde a alguna version`,
-        404,
-        null
-      );
-    }
+    if (!existIdFighterVersion)
+      return notFoundByIdResponse(res, "insertFighterMove", id_fighter_version);
 
-    if (!img_command || !img_execution) {
-      return badResponse(
+    if (!img_command || !img_execution)
+      return emptyImages(
         res,
-        "Faltan archivos de imagen",
-        "Debes enviar ambas imágenes: img_command e img_execution",
-        400,
-        null
+        ["img_command", "img_execution"],
+        "insertFighterMove"
       );
-    }
 
     const imgExecutionRelativePath = await saveImgBuffer(
       req,
@@ -143,13 +111,7 @@ export const insertFighterMove = async (req, res) => {
     );
   } catch (error) {
     console.log(`Error en insertFighterMove (controlador): ${error}`);
-    return badResponse(
-      res,
-      "Ocurrio una exepcion",
-      "Ocurrio una exepcion en insertFighterMove",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "insertFighterMove", error.message);
   }
 };
 
@@ -159,27 +121,18 @@ export const updateFighterMove = async (req, res) => {
     const oldFighterMove = await FighterMove.getFighterMoveById(id);
 
     if (!oldFighterMove)
-      return badResponse(
-        res,
-        "No se encontro el movimiento",
-        `No se encontro el movimiento con la id: ${id}`,
-        404,
-        null
-      );
+      return notFoundByIdResponse(res, "updateFighterMove", id);
 
     const { id_fighter_version, name, description, is_super_move } = req.body;
     const img_command = req.files.img_command?.[0];
     const img_execution = req.files.img_execution?.[0];
 
-    if (!img_command || !img_execution) {
-      return badResponse(
+    if (!img_command || !img_execution)
+      return emptyImages(
         res,
-        "Faltan archivos de imagen",
-        "Debes enviar ambas imágenes: img_command e img_execution",
-        400,
-        null
+        ["img_command", "img_execution"],
+        "updateFighterMove"
       );
-    }
 
     const resDeleteOldImgCommand = await deleteImgPath(
       oldFighterMove.img_command
@@ -188,18 +141,19 @@ export const updateFighterMove = async (req, res) => {
       oldFighterMove.img_execution
     );
 
-    if (
-      resDeleteOldImgCommand.value === false ||
-      resDeleteOldImgExecution.value === false
-    ) {
-      return badResponse(
+    if (resDeleteOldImgCommand?.value === false)
+      return deleteOldImageErrorResponse(
         res,
-        "Error al borrar las imagenes anteriores",
-        "Las imagenes img_command e img_execution del movimiento viejo no se pudieron borrar",
-        500,
-        `Error para img_command: ${resDeleteOldImgCommand.message} Error para img_execution ${resDeleteOldImgExecution.message} `
+        "updateFighterMove",
+        resDeleteOldImgCommand.message
       );
-    }
+
+    if (resDeleteOldImgExecution?.value === false)
+      return deleteOldImageErrorResponse(
+        res,
+        "updateFighterMove",
+        resDeleteOldImgExecution.message
+      );
 
     const imgExecutionRelativePath = await saveImgBuffer(
       req,
@@ -235,13 +189,7 @@ export const updateFighterMove = async (req, res) => {
     );
   } catch (error) {
     console.log(`Error en updateFighterMove (controlador): ${error.message}`);
-    return badResponse(
-      res,
-      "Ocurrio una execpcion",
-      "Ocurrio una excepcion en updateFighterMove",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "updateFighterMove", error.message);
   }
 };
 
@@ -250,15 +198,8 @@ export const deleteFighterMove = async (req, res) => {
     const { id } = req.params;
     const oldFighterMove = await FighterMove.getFighterMoveById(id);
 
-    if (!oldFighterMove) {
-      return badResponse(
-        res,
-        "No se encontro el movimiento",
-        `No se encontro el movimiento con la id ${id}`,
-        404,
-        null
-      );
-    }
+    if (!oldFighterMove)
+      return notFoundByIdResponse(res, "deleteFighterMove", id);
 
     const resDeleteOldImgCommand = await deleteImgPath(
       oldFighterMove.img_command
@@ -267,18 +208,19 @@ export const deleteFighterMove = async (req, res) => {
       oldFighterMove.img_execution
     );
 
-    if (
-      resDeleteOldImgCommand.value === false ||
-      resDeleteOldImgExecution.value === false
-    ) {
-      return badResponse(
+    if (resDeleteOldImgCommand?.value === false)
+      return deleteOldImageErrorResponse(
         res,
-        "Error al borrar las imagenes anteriores",
-        "Las imagenes img_command e img_execution del movimiento viejo no se pudieron borrar",
-        500,
-        `Error para img_command: ${resDeleteOldImgCommand.message} Error para img_execution ${resDeleteOldImgExecution.message} `
+        "deleteFighterMove",
+        resDeleteOldImgCommand.message
       );
-    }
+
+    if (resDeleteOldImgExecution?.value === false)
+      return deleteOldImageErrorResponse(
+        res,
+        "deleteFighterMove",
+        resDeleteOldImgExecution.message
+      );
 
     const deletedFighterMove = await FighterMove.deleteFighterMove(id);
 
@@ -290,12 +232,7 @@ export const deleteFighterMove = async (req, res) => {
       deletedFighterMove
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Ocurrio una execpcion",
-      "Ocurrio una excepcion en deleteFighterMove",
-      500,
-      error.message
-    );
+    console.log(`Error en deleteFighterMove (controlador): ${error.message}`);
+    return exceptionResponseControl(res, "deleteFighterMove", error.message);
   }
 };
