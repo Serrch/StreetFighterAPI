@@ -2,6 +2,8 @@ import Fighters from "../models/fighters.model.js";
 import FighterVersion from "../models/fighters_versions.model.js";
 import FighterImage from "../models/fighter_images.model.js";
 import { OkResponse, badResponse } from "../utils/responses.js";
+import FighterMove from "../models/fighter_moves.model.js";
+import { buildURL } from "../utils/buildURL.js";
 
 export const getFighters = async function (req, res) {
   try {
@@ -182,6 +184,7 @@ export const getFighterDetails = async (req, res) => {
               model: FighterImage,
               as: "images",
             },
+            { model: FighterMove, as: "moves" },
           ],
         },
       ],
@@ -197,12 +200,27 @@ export const getFighterDetails = async (req, res) => {
       );
     }
 
+    let jsonFighter = fighter.toJSON();
+
+    jsonFighter.versions.forEach((version) => {
+      version.images.forEach((image) => {
+        image.imageUrl = buildURL(req, image.image);
+      });
+
+      version.moves.forEach((move) => {
+        if (move.img_command)
+          move.img_command_url = buildURL(req, move.img_command);
+        if (move.img_execution)
+          move.img_execution_url = buildURL(req, move.img_execution);
+      });
+    });
+
     return OkResponse(
       res,
       "Consulta exitosa",
       "Detalles del peleador obtenidos",
       200,
-      fighter
+      jsonFighter
     );
   } catch (error) {
     return badResponse(
