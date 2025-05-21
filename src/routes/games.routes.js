@@ -1,6 +1,5 @@
 import { Router } from "express";
 import multer from "multer";
-import storage from "../utils/img_functions.js";
 import {
   getGames,
   getGameById,
@@ -12,7 +11,7 @@ import { validateGame } from "../validations/games_validations/game_validations.
 import { validateFields } from "../validations/validate-fields.js";
 import { validateImages } from "../validations/validate-image.js";
 
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 router.get("/games", getGames);

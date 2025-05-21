@@ -1,8 +1,16 @@
 import Games from "../models/games.model.js";
 import path from "path";
-import { OkResponse, badResponse } from "../utils/responses.js";
+import {
+  OkResponse,
+  badResponse,
+  deleteOldImageErrorResponse,
+  emptyImages,
+  exceptionResponseControl,
+  notFoundByIdResponse,
+} from "../utils/responses.js";
 import { deleteImgPath } from "../utils/delete_img_path.js";
 import { buildURL } from "../utils/buildURL.js";
+import { saveImgBuffer } from "../utils/save_img_buffer.js";
 
 export const getGames = async (req, res) => {
   try {
@@ -28,13 +36,8 @@ export const getGames = async (req, res) => {
       gamesWithPublicUrl
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error al obtener los juegos",
-      "Ocurrio una excepcion al obtener los juegos",
-      500,
-      error.message
-    );
+    console.log(`Ocurrio un error en getGames (controlador): ${error}`);
+    return exceptionResponseControl(res, "getGames", error.message);
   }
 };
 
@@ -43,15 +46,7 @@ export const getGameById = async (req, res) => {
     const { id } = req.params;
     const game = await Games.getGameById(id);
 
-    if (!game) {
-      return badResponse(
-        res,
-        "Error al obtener el juego",
-        `No se encontro el juego con la id: ${id}`,
-        404,
-        id
-      );
-    }
+    if (!game) return notFoundByIdResponse(res, "getGameById", id);
 
     let jsonResponse = game.toJSON();
     jsonResponse.urlImgLogo = buildURL(req, jsonResponse.img_logo);
@@ -65,13 +60,7 @@ export const getGameById = async (req, res) => {
     );
   } catch (error) {
     console.error("Error en getGameById", error);
-    return badResponse(
-      res,
-      "Error al obtener el juego",
-      "Ocurrio una excepcion al obtener el juego",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "getGameById", error.message);
   }
 };
 
@@ -80,21 +69,9 @@ export const insertGame = async (req, res) => {
     const { title, description, year, short_title } = req.body;
     const fileImgLogo = req.files?.img_logo?.[0];
 
-    if (!fileImgLogo) {
-      return badResponse(
-        res,
-        "Error al guardar imagen",
-        "No se guardó la imagen en uploads",
-        500,
-        null
-      );
-    }
+    if (!fileImgLogo) return emptyImages(res, ["img_logo"], "insertGame");
 
-    const relativePath = path.posix.join(
-      "uploads",
-      "img_game_logos",
-      fileImgLogo.filename
-    );
+    const relativePath = await saveImgBuffer(req, fileImgLogo, false);
 
     const img_logo = relativePath;
 
@@ -118,27 +95,7 @@ export const insertGame = async (req, res) => {
     );
   } catch (error) {
     console.log(`Error en insertGame (controlador): ${error}`);
-
-    const fileImgLogo = req.files?.img_logo?.[0];
-
-    if (fileImgLogo) {
-      const resDeleteImg = await deleteImgPath(fileImgLogo);
-      if (resDeleteImg.value === false) {
-        console.log(
-          "No se pudo borrar la imagen tras la excepción en insertGame"
-        );
-      } else {
-        console.log("Imagen borrada exitosamente");
-      }
-    }
-
-    return badResponse(
-      res,
-      "Error al insertar el juego",
-      "Ocurrió una excepción en el controlador (insertGame)",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "insertGame", error.message);
   }
 };
 
@@ -149,46 +106,23 @@ export const updateGame = async (req, res) => {
     const { id } = req.params;
     oldGame = await Games.getGameById(id);
 
-    if (!oldGame) {
-      return badResponse(
-        res,
-        "No se encontró el juego",
-        `No se encontró el juego con la ID: ${id}`,
-        404,
-        null
-      );
-    }
+    if (!oldGame) return notFoundByIdResponse(res, "updateGame", id);
 
     const { title, description, year, short_title } = req.body;
-    const fileImgLogo = req.files?.img_logo?.[0];
+    const fileImgLogo = req.files.img_logo?.[0];
 
-    if (!fileImgLogo) {
-      return badResponse(
-        res,
-        "Error al guardar imagen",
-        "No se guardó la imagen en uploads",
-        500,
-        null
-      );
-    }
+    if (!fileImgLogo) return emptyImages(res, ["img_logo"], "updateGame");
 
     const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-    if (resDeleteImg?.value === false) {
-      return badResponse(
+    if (resDeleteImg?.value === false)
+      return deleteOldImageErrorResponse(
         res,
-        "Error al borrar imagen",
-        "Ocurrió un error al borrar la imagen anterior",
-        500,
+        "updateGame",
         resDeleteImg.message
       );
-    }
 
-    const relativePath = path.posix.join(
-      "uploads",
-      "img_game_logos",
-      fileImgLogo.filename
-    );
+    const relativePath = await saveImgBuffer(req, fileImgLogo, false);
 
     const img_logo = relativePath;
 
@@ -214,28 +148,7 @@ export const updateGame = async (req, res) => {
     );
   } catch (error) {
     console.error(`Error en updateGame (controlador): ${error.message}`);
-
-    if (oldGame?.img_logo) {
-      const resDeleteImg = await deleteImgPath(oldGame.img_logo);
-
-      if (resDeleteImg?.value === false) {
-        return badResponse(
-          res,
-          "Error al borrar imagen",
-          "Ocurrió un error al borrar la imagen",
-          500,
-          resDeleteImg.message
-        );
-      }
-    }
-
-    return badResponse(
-      res,
-      "Error al actualizar el juego",
-      "Ocurrió una excepción al actualizar",
-      500,
-      error.message
-    );
+    return exceptionResponseControl(res, "updateGame", error.message);
   }
 };
 
@@ -244,30 +157,19 @@ export const deleteGame = async (req, res) => {
     const { id } = req.params;
     const oldGame = await Games.getGameById(id);
 
-    if (!oldGame) {
-      return badResponse(
-        res,
-        "Juego no encontrado",
-        `No se encontró el juego con la ID: ${id}`,
-        404,
-        id
-      );
-    }
+    if (!oldGame) return notFoundByIdResponse(res, "deleteGame", id);
 
     const oldGameName = oldGame.title;
     const deletedGame = await Games.deleteGame(id);
 
     const resDeleteImg = await deleteImgPath(oldGame.img_logo);
 
-    if (resDeleteImg?.value === false) {
-      return badResponse(
+    if (resDeleteImg?.value === false)
+      return deleteOldImageErrorResponse(
         res,
-        "Error al borrar imagen",
-        "Ocurrio un error al borrar la imagen",
-        500,
+        "deleteGame",
         resDeleteImg.message
       );
-    }
 
     return OkResponse(
       res,
@@ -277,12 +179,7 @@ export const deleteGame = async (req, res) => {
       id
     );
   } catch (error) {
-    return badResponse(
-      res,
-      "Error al borrar el juego",
-      "Ocurrio un error al eliminar el juego",
-      500,
-      error.message
-    );
+    console.error(`Error en deleteGame (controlador): ${error.message}`);
+    return exceptionResponseControl(res, "deleteGame", error.message);
   }
 };
