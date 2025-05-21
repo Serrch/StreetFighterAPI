@@ -20,7 +20,6 @@ export const validateGame = [
     .withMessage("El campo year es obligatorio")
     .isInt({ min: 1000, max: 9999 })
     .withMessage("El campo year debe tener 4 digitos"),
-  check("img_logo"),
   check("short_title")
     .notEmpty()
     .withMessage("El campo short_title es obligatorio")

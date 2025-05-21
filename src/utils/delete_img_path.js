@@ -16,8 +16,19 @@ export async function deleteImgPath(imgPath) {
     await fs.unlink(fullPath);
     console.log(fullPath);
     console.log("Imagen eliminada correctamente");
-    return null;
+    return {
+      message: "Imagen eliminada correctamente",
+      value: true,
+    };
   } catch (err) {
+    if (err.code === "ENOENT") {
+      console.warn(`Archivo ya estaba eliminado: ${imgPath}`);
+      return {
+        message: "Archivo ya estaba eliminado",
+        value: true,
+      };
+    }
+
     console.log(`No se pudo borrar la imagen anterior: ${err.message}`);
     return {
       message: `No se pudo borrar la imagen anterior ${err.message}`,

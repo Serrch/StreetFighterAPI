@@ -40,25 +40,25 @@ const FighterMove = sequelize.define(
   }
 );
 
-FighterMove.getAllMoves = async function () {
+FighterMove.getFighterMoves = async function () {
   return await this.findAll();
 };
 
-FighterMove.getMoveById = async function (id) {
+FighterMove.getFighterMoveById = async function (id) {
   return await this.findByPk(id);
 };
 
-FighterMove.insertMove = async function (moveData) {
+FighterMove.insertFighterMove = async function (moveData) {
   return await this.create(moveData);
 };
 
-FighterMove.updateMove = async function (id, newData) {
+FighterMove.updateFighterMove = async function (id, newData) {
   const move = await this.findByPk(id);
   if (!move) throw new Error("Movimiento no encontrado");
   return await move.update(newData);
 };
 
-FighterMove.deleteMove = async function (id) {
+FighterMove.deleteFighterMove = async function (id) {
   const move = await this.findByPk(id);
   if (!move) throw new Error("Movimiento no encontrado");
   await move.destroy();
