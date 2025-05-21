@@ -1,5 +1,4 @@
 import Games from "../models/games.model.js";
-import path from "path";
 import {
   OkResponse,
   badResponse,

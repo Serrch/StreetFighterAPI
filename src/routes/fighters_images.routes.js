@@ -1,6 +1,5 @@
 import { Router } from "express";
 import multer from "multer";
-import storage from "../utils/img_functions.js";
 import { validateFighterImage } from "../validations/fighter_image_validations/fighter_image_validations.js";
 import { validateFields } from "../validations/validate-fields.js";
 import { validateImages } from "../validations/validate-image.js";
@@ -12,7 +11,7 @@ import {
   deleteFighterImage,
 } from "../controllers/fighters_images.controller.js";
 
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 router.get("/fighter_image", getFighterImages);
